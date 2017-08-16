@@ -2,7 +2,7 @@
 #-*- coding:utf-8 -*-
 # Written on 6/14/2014 by Sheng-Jun Lin
 # 8/10/2014: Add Angular Distance Mode
-# 8/15/2017: Move classes to be the modulo astro_coor
+# 8/15/2017: Move classes to be the module astro_coor
 
 from astro_coor import *
 from sys import argv

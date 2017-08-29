@@ -5,7 +5,6 @@
 
 import numpy as np
 from functools import total_ordering
-import warnings
 import sys
 
 deg2rad = np.pi / 180.

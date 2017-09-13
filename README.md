@@ -3,8 +3,16 @@ A Python module to calculate all the RA/Dec forms, the angular distance, or the 
 
 **astro_coor.py**
 
-The module contains ra/dec classes, and functions: DistanceMode(), DisplacementMode().
+The module contains ra/dec classes, and functions: DistanceMode(), DisplacementMode().  
 
 **RADec_convert.py**
 
-Please checkout 'python RADec_convert.py -h'.
+A python script could directly be executed in bash/tcsh.  
+
+Please checkout 'python RADec\_convert.py -h'.  
+
+**beam_calc.py**
+
+A python script could directly be executed in bash/tcsh.  
+
+Please checkout 'python beam\_calc.py -h'.  

@@ -26,26 +26,32 @@ class ra(object):
     '''
     def __init__(self, h=np.nan, m=np.nan, s=np.nan,
                  d=np.nan, arcm=np.nan, arcs=np.nan, all_d=np.nan):
+        # priority = 1
         self.h = float(h)  # hour
         self.m = float(m)  # minute
         self.s = float(s)  # second
+        # priority = 2
         self.d = float(d)  # deg
         self.arcm = float(arcm)  # arcmin
         self.arcs = float(arcs)  # arcsec
+        # priority = 3
         self.all_d = float(all_d)  # all in deg
-        self.priority = 0
+        self.priority = 0 # Initialize the state of priority.
+        # Different numbers are corresponding to different system (hms/dms/all deg).
 
-    def __eq__(self, other):
-        self.converter()
+    def __eq__(self, other): # defined for = operator. Eg. ra(all_d=87) == ra(all_d=50)
+        self.converter() # Make sure that the "all in deg" form exists.
         other.converter()
         return self.all_d == other.all_d
 
-    def __lt__(self, other):
+    def __lt__(self, other): # defined for < operator. Eg. ra(all_d=87) < ra(all_d=50)
         self.converter()
         other.converter()
         return self.all_d < other.all_d
+    # Since "@total_ordering", it is not necessary to define > operator.
+    # Once = and < are defined, then the comparison relations are well-defined.
 
-    def __repr__(self):
+    def __repr__(self): # defined for print(). Eg. print(ra(all_d=87))
         self.converter()
         return '{0}:{1}:{2}'.format(self.h, self.m, self.s)
 
@@ -77,7 +83,7 @@ class ra(object):
         self.all_d = float(all_d)  # all in deg
         self.priority = 3
 
-    def unit(self):
+    def check_unit(self):
         if self.priority == 0:
             if (not np.isnan(self.h)) and (not np.isnan(self.m)) \
                     and (not np.isnan(self.s)):
@@ -121,8 +127,12 @@ class ra(object):
         self.set_arcs((self.all_d - self.d) * 3600. - self.arcm * 60.)
 
     def converter(self):
+        """
+        Calculate all the forms of RA (hms/dms/all deg).
+        """
         if self.priority == 0:
-            self.unit()
+            # None of forms exists. Need to determine
+            self.check_unit()
         if self.priority == 1:
             # The h:m:s form exists
             self.hms2all_d()
@@ -171,11 +181,14 @@ class dec(object):
     def __init__(self, sign='+', d=np.nan, arcm=np.nan, arcs=np.nan,
                  all_d=np.nan):
         self.sign = sign  # positive/negative ('+'/'-')
+        # priority = -2
         self.d = float(d)  # deg
         self.arcm = float(arcm)  # arcmin
         self.arcs = float(arcs)  # arcsec
+        # priority = -1
         self.all_d = float(all_d)  # all in deg
-        self.priority = 0
+        self.priority = 0 # Initialize the state of priority.
+        # Different numbers are corresponding to different system (All deg/dms).
 
     def __eq__(self, other):
         self.converter()
@@ -211,7 +224,7 @@ class dec(object):
         self.all_d = float(all_d)  # all in deg
         self.priority = -3
 
-    def unit(self):
+    def check_unit(self):
         if self.priority == 0:
             if (not np.isnan(self.d)) and (not np.isnan(self.arcm)) \
                     and (not np.isnan(self.arcs)):
@@ -245,8 +258,12 @@ class dec(object):
         self.set_arcs((abs_all_d - self.d) * 3600. - self.arcm * 60.)
 
     def converter(self):
+        """
+        Calculate all the forms of Dec (dms/all deg).
+        """
         if self.priority == 0:
-            self.unit()
+            # None of forms exists. Need to determine
+            self.check_unit()
         if self.priority == -2:
             # The d:m:s form exists
             self.dms2all_d()

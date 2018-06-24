@@ -109,13 +109,13 @@ def IRAM30m_eff(wavelen_SI):
     P2pr_measured = np.array([.07, .08, .09, .11, .11, .11, .11, .11])
     # P3'_eff: The 3rd error beam eff.
     P3pr_measured = np.array([.06, .06, .06, .09, .11, .15, .14, .14])
-    # F_eff: Forward eff. = B_eff + P1'_eff + P2'_eff + P3'_eff
+    # F_eff: Forward eff. = B_eff + P1'_eff + P2'_eff + P3'_eff + fss_eff
     Feff_measured = np.array([.95, .94, .93, .94, .92, .87, .81, .80])
-    # Note: 1.00 = F_eff
-    #              + fss_eff (eta_fss, forward spillover&scattering eff.)
-    #              + rss_eff (eta_rss, rearward spillover&scattering eff.)
+    # Note: 1.00 = F_eff + rss_eff (rearward spillover&scattering eff.)
     # These effs are normailized to a solid angle of 4pi.
-    # i.e. eff = int@Ω(Pn(Ω)dΩ) / int@Ω_4pi(Pn(Ω)dΩ)
+    # i.e. eff = eta_gain(?) * int@Ω(Pn(Ω)dΩ) / int@Ω_4pi(Pn(Ω)dΩ)
+    #          = G/4pi*int@Ω_4pi(Pn(Ω)dΩ) * int@Ω(Pn(Ω)dΩ) / int@Ω_4pi(Pn(Ω)dΩ)
+    #          = G / 4pi * int@Ω(Pn(Ω)dΩ) (?)
 
     # Linear interpolation of these effs with frequencies
     Beff = interp1d(freq_measured, Beff_measured)
@@ -128,22 +128,28 @@ def IRAM30m_eff(wavelen_SI):
     effs = [Beff(freq_GHz), P1pr(freq_GHz), P2pr(freq_GHz), P3pr(freq_GHz)]
     Feff_0 = np.asscalar(Feff(freq_GHz))
 
-    # Efficiencies normailized to 2pi
-    # Note (Kutner&Ulich 1981):
+    # Efficiencies normailized to 2pi, *_eff/F_eff
+    # Note (Kutner&Ulich 1981, Tools of Radio Astronomy: Ch7&8):
     # The antenna temperature, T_A^* (IRAM30m data),
     # is correscted for atm. attenuation, resistive losses,
     # and rearward spillover & scattering.
+    # Or call it as forward beam brightness T.
     # i.e. T_A^* = T_A * exp(tau*A) / eta_gain / eta_rss
     #      eta_rss = (int@Ω_2pi/int@Ω_4pi)(Pn(Ω)dΩ)
     #      eta_gain = G/4pi * int@Ω_4pi(Pn(Ω)dΩ)
+    #      eta_rss * eta_gain = F_eff for IRAM30m
+    # The radiation temperature, T_R^*, is also corrected for
+    # forward spillover & scattering.
+    # i.e. T_R^* = T_A^* / eta_fss = T_MB for IRAM30m ...assuming T_P's = 0
+    #      eta_fss = (int@Ω_diffraction/int@Ω_2pi)(Pn(Ω)dΩ)
+    #              = B_eff / F_eff for IRAM30m [Ω_4pi] ...assuming P'_effs = 0
+    #              = eta_MB for IRAM30m [Ω_2pi] ...assuming P'_effs = 0
+    # =>   T_A^* = T_R^* (B_eff/F_eff + Sum[ P'_eff ]/F_eff)
+    #               + (T[->0] * fss_eff/F_eff)?
     # T_R is the source radiation temperature.
-    # i.e. T_A^* = T_R * int@Ω_s(Pn(Ψ-Ω)*B(Ψ)dΨ)/int@Ω_2pi(Pn(Ω)dΩ)
-    # =>   T_A^* = T_R * (B_eff + Sum[ P'_eff ]) + (T[->0] * fss_eff)?
-    #
-    # p.s. T_R^* = T_R * int@Ω_s(Pn(Ψ-Ω)*B(Ψ)dΨ)/int@Ω_diffrac(Pn(Ω)dΩ)
-    #            = T_A^* / eta_fss[=(int@Ω_diffrac/int@Ω_2pi)(Pn(Ω)dΩ)]
-    #      is corrected everything except for the coupling of
-    #      the antenna diffraction pattern to the source.
+    #      T_R = T_R^* / eta_c
+    #      eta_c = int@Ω_s(Pn(Ψ-Ω)*B(Ψ)dΨ) / int@Ω_diffraction(Pn(Ω)dΩ)
+    #            ~= (θ_s)^2 / (θ_s ^2 + θ_MB ^2)
     renormalized2Feff = [np.asscalar(e) / Feff_0 for e in effs]
     return tuple(renormalized2Feff)
 

@@ -7,8 +7,6 @@ from scipy.interpolate import interp1d
 from sys import argv
 from getopt import getopt
 
-# HPBW= 2460/freq_GHz
-
 c_SI = 299792458.
 
 def demical(quan):
@@ -117,7 +115,7 @@ def IRAM30m_eff(wavelen_SI):
     #              + fss_eff (eta_fss, forward spillover&scattering eff.)
     #              + rss_eff (eta_rss, rearward spillover&scattering eff.)
     # These effs are normailized to a solid angle of 4pi.
-    # i.e. int@Ω(Pn(Ω)dΩ) / int@Ω_4pi(Pn(Ω)dΩ)
+    # i.e. eff = int@Ω(Pn(Ω)dΩ) / int@Ω_4pi(Pn(Ω)dΩ)
 
     # Linear interpolation of these effs with frequencies
     Beff = interp1d(freq_measured, Beff_measured)
@@ -131,11 +129,13 @@ def IRAM30m_eff(wavelen_SI):
     Feff_0 = np.asscalar(Feff(freq_GHz))
 
     # Efficiencies normailized to 2pi
-    # Note:
+    # Note (Kutner&Ulich 1981):
     # The antenna temperature, T_A^* (IRAM30m data),
     # is correscted for atm. attenuation, resistive losses,
     # and rearward spillover & scattering.
     # i.e. T_A^* = T_A * exp(tau*A) / eta_gain / eta_rss
+    #      eta_rss = (int@Ω_2pi/int@Ω_4pi)(Pn(Ω)dΩ)
+    #      eta_gain = G/4pi * int@Ω_4pi(Pn(Ω)dΩ)
     # T_R is the source radiation temperature.
     # i.e. T_A^* = T_R * int@Ω_s(Pn(Ψ-Ω)*B(Ψ)dΨ)/int@Ω_2pi(Pn(Ω)dΩ)
     # =>   T_A^* = T_R * (B_eff + Sum[ P'_eff ]) + (T[->0] * fss_eff)?

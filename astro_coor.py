@@ -37,12 +37,21 @@ class ra(object):
 
     '''
     ra class stores the RA part of coordinates.
-    RA forms: h:m:s / d:arcm:arcs / degree(all_d)
-    Any one of forms is acceptable for creating a ra class
-    since ra.converter() automatically calculates other forms.
-        e.g. ra(h=4, m=31, s=30), ra(d=67, arcm=52, arcs=30),
-             or ra(all_d=67.875)
+    RA forms:
+        h:m:s (hms) / d:arcm:arcs (dms) / all_d (degree) / all_rad (radian)
+    Any one of forms is acceptable for creating a ra class,
+    then ra.converter() would be automatically applied to calculate the other forms.
+        e.g. ra(h=4, m=31, s=30),
+             ra('4:31:30'),
+             ra(d=67, arcm=52, arcs=30),
+             ra('d67:52:30'), # [would be interpreted as the dms form]
+             ra(all_d=67.875),
+             ra('67.875'), # [would be interpreted as the degree form]
+             or ra(all_rad=1.18).
     While print a ra class, only the hms form will be returned.
+    To retrieve certain forms of strings, there are some methods:
+        ra.hms(sep=':'), ra.dms(), ra.degree(), or ra.radian(),
+        where ':' is the default of sep.
     ra classes are ordered,
         i.e. the operators: '<', '>', '==', and etc. are valid.
     '''
@@ -70,15 +79,15 @@ class ra(object):
             # type = 4
             self.all_rad = all_rad  # all in radian
 
-        self.type = 0 # Initialize the state of type.
-        # Different numbers are corresponding to different system (hms/dms/all deg).
+        self.type = 0 # Initialize the state of type. Check with ra.converter().
 
     def resolve_RA(self, string):
 
         '''
         Analysis the string of RA in either h:m:s, 'd'd:m:s, or degree forms.
             e.g. '4:31:30', 'd67:52:30', or '67.875'.
-        Note that the dms form should be prefixed by 'd'.
+        Note that the dms form should be prefixed by 'd',
+        and the radian form is not acceptable.
         '''
         try:
             if 'd' in string:
@@ -115,7 +124,7 @@ class ra(object):
     def __repr__(self): # defined for print(). Eg. print(ra(all_d=87))
 
         self.converter()
-        return '{0}:{1}:{2}'.format(self.h, self.m, self.s)
+        return self.hms()
 
     @property
     def h(self):
@@ -141,6 +150,9 @@ class ra(object):
         self._s = nanfloat(s)  # second
         self.type = 1
 
+    def hms(self, sep=':'):
+        return '{0:0>2d}{3}{1:0>2d}{3}{2:0>5.2f}'.format(self.h, self.m, self.s, sep)
+
     @property
     def d(self):
         return self._d
@@ -165,6 +177,9 @@ class ra(object):
         self._arcs = nanfloat(arcs)  # arcsec
         self.type = 2
 
+    def dms(self, sep=':'):
+        return '{0:0>3d}{3}{1:0>2d}{3}{2:0>5.2f}'.format(self.d, self.arcm, self.arcs, sep)
+
     @property
     def all_d(self):
         return self._all_d
@@ -173,6 +188,9 @@ class ra(object):
         self._all_d = nanfloat(all_d)  # all in deg
         self.type = 3
 
+    def degree(self):
+        return '{0:.5f}'.format(self.all_d)
+
     @property
     def all_rad(self):
         return self._all_rad
@@ -180,6 +198,9 @@ class ra(object):
     def all_rad(self, all_rad):
         self._all_rad = nanfloat(all_rad)  # all in rad
         self.type = 4
+
+    def radian(self):
+        return '{0:.7f}'.format(self.all_rad)
 
     def check_unit(self):
 
@@ -195,7 +216,7 @@ class ra(object):
             elif not np.isnan(self.all_rad):
                 self.type = 4  # radian system
             else:
-                raise ValueError('RA doesn\'t be assigned completely.')
+                raise ValueError("RA doesn't be assigned completely.")
 
     def hms2all_d(self):
 
@@ -245,7 +266,7 @@ class ra(object):
     def converter(self):
 
         '''
-        Calculate all the forms of RA (hms/dms/all deg).
+        Calculate all the forms of RA (hms/dms/all deg/all rad).
         '''
         if self.type == 0:
             # None of forms exists. Need to determine
@@ -278,13 +299,20 @@ class dec(object):
 
     '''
     dec class stores the Dec part of coordinates.
-    Dec forms: d:arcm:arcs / degree(all_d)
-    Any one of forms is acceptable for creating a dec class
-    since dec.converter() automatically calculates other forms.
+    Dec forms:
+        d:arcm:arcs (dms) / all_d (degree) / all_rad (radian)
+    Any one of forms is acceptable for creating a dec class,
+    then dec.converter() would be automatically applied to calculate the other forms.
         e.g. dec(sign='+', d=18, arcm=12, arcs=30),
-             or dec(all_d=18.208333)
-    Note that d is always nonagtive.
+             dec('+18:12:30'),
+             dec(all_d=18.208333),
+             dec('18.208333'), [would be interpreted as the degree form]
+             or dec(all_rad=0.317795)
+    Note that d (deg in the dms form) is always non-nagtive.
     While print a dec class, only the dms form will be returned.
+    To retrieve certain forms of strings, there are some methods:
+        dec.dms(sep=':'), dec.degree(), or dec.radian(),
+        where ':' is the default of sep.
     dec classes are ordered,
         i.e. the operators: '<', '>', '==', and etc. are valid.
     '''
@@ -307,22 +335,24 @@ class dec(object):
             # type = -4
             self.all_rad = all_rad  # all in rad
 
-        self.type = 0 # Initialize the state of type.
-        # Different numbers are corresponding to different system (All deg/dms).
+        self.type = 0 # Initialize the state of type. Check with dec.converter().
 
     def resolve_Dec(self, string):
 
         '''
         Analysis the string of Dec in either h:m:s, d:m:s, or degree forms.
             e.g. '+18:12:30', or '+18.208333'
+        Note that the radian form is not acceptable.
         '''
         try:
             if ':' in string:
                 tmp = string.split(':')
+                # self.d and self.sign should be given separately.
                 self.sign = '+'
                 if '-' in tmp[0]:
                     self.sign = '-'
                     tmp[0].replace('-', '')
+                # self.d is always non-negative.
                 self.d = tmp[0]
                 self.arcm = tmp[1]
                 self.arcs = tmp[2]
@@ -349,7 +379,7 @@ class dec(object):
     def __repr__(self):
 
         self.converter()
-        return '{0}{1}:{2}:{3}'.format(self.sign, self.d, self.arcm, self.arcs)
+        return self.dms()
 
     @property
     def sign(self):
@@ -365,6 +395,11 @@ class dec(object):
     @d.setter
     def d(self, d):
         self._d = nanint(d)  # deg
+        # self.d is always non-negative.
+        # self.d and self.sign should be given separately.
+        if self._d < 0.:
+            self._sign = '-'
+            self._d = abs(self._d)
         self.type = -2
 
     @property
@@ -383,6 +418,9 @@ class dec(object):
         self._arcs = nanfloat(arcs)  # arcsec
         self.type = -2
 
+    def dms(self, sep=':'):
+        return '{0}{1:0>2d}{4}{2:0>2d}{4}{3:0>5.2f}'.format(self.sign, self.d, self.arcm, self.arcs, sep)
+
     @property
     def all_d(self):
         return self._all_d
@@ -391,6 +429,9 @@ class dec(object):
         self._all_d = nanfloat(all_d)  # all in deg
         self.type = -3
 
+    def degree(self):
+        return '{0:+.6f}'.format(self.all_d)
+
     @property
     def all_rad(self):
         return self._all_rad
@@ -398,6 +439,9 @@ class dec(object):
     def all_rad(self, all_rad):
         self._all_rad = nanfloat(all_rad)  # all in rad
         self.type = -4
+
+    def radian(self):
+        return '{0:+.8}'.format(self.all_rad)
 
     def check_unit(self):
 
@@ -410,7 +454,7 @@ class dec(object):
             elif not np.isnan(self.all_rad):
                 self.type = -4  # radian sytem
             else:
-                raise ValueError('Dec doesn\'t be assigned completely.')
+                raise ValueError("Dec doesn't be assigned completely.")
 
     def dms2all_d(self):
 
@@ -419,6 +463,8 @@ class dec(object):
         all_d = self.d
         all_d += self.arcm / 60.
         all_d += self.arcs / 3600.
+        # self.d is always positive.
+        # self.d and self.sign should be given separately.
         if self.sign == '-':
             all_d *= -1
         self.all_d = all_d
@@ -534,7 +580,8 @@ def resolve_RA(string):
     '''
     Analysis the string of RA in either h:m:s, 'd'd:m:s, or degree forms.
         e.g. '4:31:30', 'd67:52:30', or '67.875'.
-    Note that the dms form should be prefixed by 'd'.
+    Note that the dms form should be prefixed by 'd',
+    and the radian form is not acceptable.
     '''
     RA = ra(ra_str=string)
     return RA
@@ -545,6 +592,7 @@ def resolve_Dec(string):
     '''
     Analysis the string of Dec in either h:m:s, d:m:s, or degree forms.
         e.g. '+18:12:30', or '+18.208333'
+    Note that the radian form is not acceptable.
     '''
     Dec = dec(dec_str=string)
     return Dec

@@ -12,7 +12,7 @@ from subprocess import call, PIPE, Popen
 def resolve_RA_line(string, line):
 
     try:
-        RA = resolve_RA(string)
+        RA = ra(ra_str=string)
         return RA
     except ValueError as err_msg:
         raise ValueError('RADec_convert: [line: {0}] {1}'.format(line, str(err_msg)))
@@ -21,7 +21,7 @@ def resolve_RA_line(string, line):
 def resolve_Dec_line(string, line):
 
     try:
-        Dec = resolve_Dec(string)
+        Dec = dec(dec_str=string)
         return Dec
     except ValueError as err_msg:
         raise ValueError('RADec_convert: [line: {0}] {1}'.format(line, str(err_msg)))
@@ -34,12 +34,12 @@ A Python script to calculate all the RA/Dec forms, the angular distance,\n\
 Usage: \n\
 1) Input from a file:           python RADec_convert.py [OPTION]...  [INPUT FILE]\n\
 2) Input from the command line: python RADec_convert.py -c [OPTION].. [COORDINATES]...\n\
-  -o output_file Specify the output filename. Otherwise it will be named as RADec.output\n\
-         If the file already exists, the result will be appended to the file.\n\
   -d             Change to [Angular Distance Mode].\n\
   -x             Change to [Angular Displacement Mode].\n\
-  -c             Don\'t assign a input file but typing in comand line directly.\n\
+  -c             Type in comand line directly and don\'t assign a input file.\n\
   -n             Don\'t generate the output file.\n\
+  -o output_file Specify the output filename. Otherwise it will be named as RADec.output\n\
+         If the file already exists, the result will be appended to the file.\n\
   -s             Don\'t print the result on screen.\n\
   -h             Print this help information.\n\n\
 Input file format:\n\

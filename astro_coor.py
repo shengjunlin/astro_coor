@@ -41,13 +41,13 @@ class ra(object):
         h:m:s (hms) / d:arcm:arcs (dms) / all_d (degree) / all_rad (radian)
     Any one of forms is acceptable for creating a ra class,
     then ra.converter() would be automatically applied to calculate the other forms.
-        e.g. ra(h=4, m=31, s=30),
-             ra('4:31:30'),
-             ra(d=67, arcm=52, arcs=30),
-             ra('d67:52:30'), # [would be interpreted as the dms form]
-             ra(all_d=67.875),
-             ra('67.875'), # [would be interpreted as the degree form]
-             or ra(all_rad=1.18).
+        e.g. [hms]: ra(h=4, m=31, s=30.0),
+                    ra('4:31:30.0'), ra('4h31m30.0s'), ra('4 31 30.0'),
+             [dms]: ra(d=67, arcm=52, arcs=30.0),
+                    ra('d67:52:30.0'), ra('d67 52 30.0'),
+             [deg]: ra(all_d=67.875),
+                    ra('67.875'),
+             [rad]: ra(all_rad=1.18).
     While print a ra class, only the hms form will be returned.
     To retrieve certain forms of strings, there are some methods:
         ra.hms(sep=':'), ra.dms(), ra.degree(), or ra.radian(),
@@ -85,27 +85,32 @@ class ra(object):
 
         '''
         Analysis the string of RA in either h:m:s, 'd'd:m:s, or degree forms.
-            e.g. '4:31:30', 'd67:52:30', or '67.875'.
+            e.g. [hms]: '4:31:30.0', '4h31m30.0s', '4H31M30.0S', '4 31 30.0',
+                 [dms]: 'd67:52:30.0', 'd67 52 30.0',
+                 [deg]: '67.875'.
         Note that the dms form should be prefixed by 'd',
         and the radian form is not acceptable.
         '''
+        string0 = string
         try:
+            string = string.lower().replace('h',' ').replace('m',' ').replace('s',' ')
+            string = string.replace(':',' ')
+            ls_str = string.split()
             if 'd' in string:
                 tmp = string.split('d')
-                tmp = tmp[1].split(':')
+                tmp = tmp[1].split()
                 self.d = tmp[0]
                 self.arcm = tmp[1]
                 self.arcs = tmp[2]
-            elif ':' in string:
-                tmp = string.split(':')
-                self.h = tmp[0]
-                self.m = tmp[1]
-                self.s = tmp[2]
+            elif len(ls_str) == 3:
+                self.h = ls_str[0]
+                self.m = ls_str[1]
+                self.s = ls_str[2]
             else:
                 self.all_d = string
             self.converter()
         except:
-            raise ValueError('Please check your RA forms "{0}"!'.format(string))
+            raise ValueError('Please check your RA forms "{0}"!'.format(string0))
 
     def __eq__(self, other): # defined for = operator. Eg. ra(all_d=87) == ra(all_d=50)
 
@@ -303,11 +308,12 @@ class dec(object):
         d:arcm:arcs (dms) / all_d (degree) / all_rad (radian)
     Any one of forms is acceptable for creating a dec class,
     then dec.converter() would be automatically applied to calculate the other forms.
-        e.g. dec(sign='+', d=18, arcm=12, arcs=30),
-             dec('+18:12:30'),
-             dec(all_d=18.208333),
-             dec('18.208333'), [would be interpreted as the degree form]
-             or dec(all_rad=0.317795)
+        e.g. [dms]: dec(sign='+', d=18, arcm=12, arcs=30.0),
+                    dec('+18:12:30.0'), dec('+18d12m30.0s'),
+                    dec('+18d12\'30.0\"'), dec('+18 12 30.0'),
+             [deg]: dec(all_d=18.208333),
+                    dec('18.208333'),
+             [rad]: dec(all_rad=0.317795).
     Note that d (deg in the dms form) is always non-nagtive.
     While print a dec class, only the dms form will be returned.
     To retrieve certain forms of strings, there are some methods:
@@ -341,28 +347,33 @@ class dec(object):
 
         '''
         Analysis the string of Dec in either h:m:s, d:m:s, or degree forms.
-            e.g. '+18:12:30', or '+18.208333'
+            e.g. [dms]: '+18:12:30.0', '+18d12m30.0s', '+18D12M30.0S', '+18 12 30.0'
+                 [deg]: '+18.208333'
         Note that the radian form is not acceptable.
         '''
+        string0 = string
         try:
-            if ':' in string:
-                tmp = string.split(':')
+            string = string.lower().replace('d',' ').replace('m',' ').replace('s',' ')
+            string = string.replace("'",' ').replace('"',' ')
+            string = string.replace(':',' ')
+            ls_str = string.split()
+            if len(ls_str) == 3:
                 # self.d and self.sign should be given separately.
                 self.sign = '+'
-                if '-' in tmp[0]:
+                if '-' in ls_str[0]:
                     self.sign = '-'
-                    tmp[0].replace('-', '')
+                    ls_str[0].replace('-', '')
                 # self.d is always non-negative.
-                self.d = tmp[0]
-                self.arcm = tmp[1]
-                self.arcs = tmp[2]
+                self.d = ls_str[0]
+                self.arcm = ls_str[1]
+                self.arcs = ls_str[2]
             else:
                 self.all_d = string
             self.converter()
         except:
             raise ValueError('Please check your Dec forms "{0}"!\n'
                     'If there are +/- signs, '
-                    'the sign and number can\'t be separated by space.'.format(string))
+                    'the sign and number can\'t be separated by space.'.format(string0))
 
     def __eq__(self, other):
 
@@ -565,6 +576,13 @@ class Coor(object):
     def __repr__(self):
 
         return '{0}, {1}'.format(self.RA.__repr__(), self.Dec.__repr__())
+
+    def hms(self, sep=':'):
+        return self.RA.hms(sep)
+
+    def dms(self, sep=':'):
+        return self.Dec.dms(sep)
+
 
 
 def converter(co):

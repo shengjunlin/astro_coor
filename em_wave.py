@@ -11,6 +11,7 @@ def main():
     help_doc = 'em_wave.py:\n\
 Calculating frequency and wavelength of the input EM wave.\n\
 Usage: em_wave.py freq/wavelength\n\
+E.g. ./em_wave.py 350GHz\n\
 freq/wavelength need to be suffixed with their units.'
 
     opts, args = getopt(argv[1:], "h")

@@ -11,6 +11,7 @@ def main():
     help_doc = 'beam_calc.py:\n\
 Calculating beam sizes for Circular Fraunhofer (1st order approx.), and IRAM 30m.\n\
 Usage: beam_calc.py freq/wavelength diameter\n\
+E.g. ./beam_calc.py 350GHz 12m\n\
 freq/wavelength/diameter need to be suffixed with their units.'
 
     opts, args = getopt(argv[1:], "h")

@@ -849,11 +849,12 @@ def beam_size(quan, diameter):
         # Beam sizes of the Error beams
         EBs, EBs_err = IRAM30m_EBs(wavelen_SI=quan_SI)
         # Beam eff. of the Error beams
-        b_eff, P1_pr, P2_pr, P3_pr = IRAM30m_eff(wavelen_SI=quan_SI)
+        b_eff, P1_pr, P2_pr, P3_pr, Feff = IRAM30m_eff(wavelen_SI=quan_SI)
         print('IRAM 30m MB (HPBW) [1.166x] = {0:.2f}"; B_eff = {1:.2f}'.format(1.166 * ratio_arcsec, b_eff))
         print('IRAM 30m EB1 (HPBW)         = {0:.2f} ({1:.2f})"; P1_pr = {2:.2f}'.format(EBs[0], EBs_err[0], P1_pr))
         print('IRAM 30m EB2 (HPBW)         = {0:.2f} ({1:.2f})"; P2_pr = {2:.2f}'.format(EBs[1], EBs_err[1], P2_pr))
         print('IRAM 30m EB3 (HPBW)         = {0:.2f} ({1:.2f})"; P3_pr = {2:.2f}'.format(EBs[2], EBs_err[2], P3_pr))
+        print('IRAM 30m Forward eff. = {0:.2f}'.format(Feff))
 
 
 def IRAM30m_EBs(wavelen_SI):
@@ -900,7 +901,7 @@ def IRAM30m_eff(wavelen_SI):
 
     # Efficiencies normailized to 4pi
     effs = [Beff(freq_GHz), P1pr(freq_GHz), P2pr(freq_GHz), P3pr(freq_GHz)]
-    Feff_0 = np.asscalar(Feff(freq_GHz))
+    Feff_freq = np.asscalar(Feff(freq_GHz))
 
     # Efficiencies normailized to 2pi, *_eff/F_eff
     # Note (Kutner&Ulich 1981, Tools of Radio Astronomy: Ch7&8):
@@ -924,6 +925,6 @@ def IRAM30m_eff(wavelen_SI):
     #      T_R = T_R^* / eta_c
     #      eta_c = int@Ω_s(Pn(Ψ-Ω)*B(Ψ)dΨ) / int@Ω_diffraction(Pn(Ω)dΩ)
     #            ~= (θ_s)^2 / (θ_s ^2 + θ_MB ^2)
-    renormalized2Feff = [np.asscalar(e) / Feff_0 for e in effs]
-    return tuple(renormalized2Feff)
+    renormalized2Feff = [np.asscalar(e) / Feff_freq for e in effs]
+    return tuple(renormalized2Feff + [Feff_freq])
 

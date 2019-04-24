@@ -842,10 +842,12 @@ def beam_size(quan, diameter):
     print('Primary Beam (FWHP) [1.02x] = {:.2f}" '.format(1.02 * ratio_arcsec))
     print('The 1st Null [1.22x]        = {:.2f}"'.format(1.22 * ratio_arcsec))
     print('')
-    if diameter_SI == 12.:
+    if diameter_SI == 6.:
+        print('SMA !')
+    elif diameter_SI == 12.:
         print('ALMA Primary Beam [1.13x] = {:.2f}"'.format(1.13 * ratio_arcsec))
         print('ALMA MRS ~ 0.5 * Primary beam')
-    if diameter_SI == 30.:
+    elif diameter_SI == 30.:
         # Beam sizes of the Error beams
         EBs, EBs_err = IRAM30m_EBs(wavelen_SI=quan_SI)
         # Beam eff. of the Error beams
@@ -855,6 +857,9 @@ def beam_size(quan, diameter):
         print('IRAM 30m EB2 (HPBW)         = {0:.2f} ({1:.2f})"; P2_pr = {2:.2f}'.format(EBs[1], EBs_err[1], P2_pr))
         print('IRAM 30m EB3 (HPBW)         = {0:.2f} ({1:.2f})"; P3_pr = {2:.2f}'.format(EBs[2], EBs_err[2], P3_pr))
         print('IRAM 30m Forward eff. = {0:.2f}'.format(Feff))
+    elif diameter_SI == 100.:
+        fwhm_arcsec, diffr_coef = GBT_fwhm(wavelen_SI=quan_SI)
+        print('GBT 100m resolution (FWHM) [{0}x] = {1:.2f}"'.format(diffr_coef, fwhm_arcsec))
 
 
 def IRAM30m_EBs(wavelen_SI):
@@ -928,3 +933,17 @@ def IRAM30m_eff(wavelen_SI):
     renormalized2Feff = [np.asscalar(e) / Feff_freq for e in effs]
     return tuple(renormalized2Feff + [Feff_freq])
 
+def GBT_fwhm(wavelen_SI):
+
+    freq_SI = c_SI / wavelen_SI
+    freq_GHz = freq_SI / 1e9
+    if freq_GHz > 1.:
+        Te_Db = 14. # The egde taper is Te = 14+-2 Db for the Gregorian feed.
+        # A formula: FWHM_arcsec = 747.6"~763.8" / freq_GHz (PG for the GBT, 2017)
+    else:
+        Te_Db = 18. # The edge taper is Te = 18+-2 Db for the prime focus receivers.
+        # A formula: FWHM_arcsec = 763.8"~797.4" / freq_GHz (PG for the GBT, 2017)
+    diffr_coef = (1.02 + 0.0135 * Te_Db)
+    FWHM_rad = diffr_coef * wavelen_SI/100.
+    FWHM_arcsec = FWHM_rad / np.pi * 180. * 3600.
+    return (FWHM_arcsec, diffr_coef)

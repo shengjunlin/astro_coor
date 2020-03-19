@@ -3,7 +3,7 @@
 # #########################################################
 # Aurthor : Sheng-Jun Lin
 # Email : sj.lin@gapp.nthu.edu.tw
-# Description : Equatorial coordinate system package
+# Description : Calculating the coordinate system and beam sizes
 # Written on 06/14/2014
 # 08/15/2017: Rewrite the method to classify types of coor. forms
 # 08/29/2017: Add some functions about units, and calculating beam sizes (for calc_beam.py).

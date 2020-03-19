@@ -1,14 +1,26 @@
 #! /usr/bin/env python
 #-*- coding:utf-8 -*-
-# Written on 6/14/2014 by Sheng-Jun Lin
+# #########################################################
+# Aurthor : Sheng-Jun Lin
+# Email : sj.lin@gapp.nthu.edu.tw
+# Description : Equatorial coordinate system package
+# Written on 06/14/2014
 # 08/15/2017: Rewrite the method to classify types of coor. forms
 # 08/29/2017: Add some functions about units, and calculating beam sizes (for calc_beam.py).
 # 07/30/2018: Use property methods.
 # 08/29/2018: Modify wave_units a little bit (for em_wave.py).
+# 03/20/2020: Become compatible with Python3. Add xy_comp for DistanceMode()
+# #########################################################
 
 import numpy as np
 from functools import total_ordering
 from scipy.interpolate import interp1d
+try:
+    # Python2
+    xrange
+except:
+    # Python3
+    xrange = range
 
 c_SI = 299792458.
 
@@ -17,7 +29,7 @@ rad2deg = 180. / np.pi
 
 def nanint(value):
 
-    if isinstance(value, basestring):
+    if isinstance(value, str):
         return int(value)
     elif np.isnan(value):
         return value
@@ -28,7 +40,7 @@ def nanint(value):
 
 def nanfloat(value):
 
-    if isinstance(value, basestring):
+    if isinstance(value, str):
         return float(value)
     elif np.isnan(value):
         return value
@@ -548,7 +560,7 @@ class Coor(object):
     '''
     def __init__(self, input_ra, input_dec):
 
-        if isinstance(input_ra, basestring):
+        if isinstance(input_ra, str):
             self.RA = ra(ra_str=input_ra)
         elif isinstance(input_ra, float):
             self.RA = ra(all_d=input_ra)
@@ -559,7 +571,7 @@ class Coor(object):
         else:
             self.RA = input_ra
 
-        if isinstance(input_dec, basestring):
+        if isinstance(input_dec, str):
             self.Dec = dec(dec_str=input_dec)
         elif isinstance(input_dec, float):
             self.Dec = dec(all_d=input_dec)
@@ -620,11 +632,15 @@ def resolve_Dec(string):
     Dec = dec(dec_str=string)
     return Dec
 
+
 # The marks for DistanceMode() and DisplacementMode():
-#      C          N
-#     / \         ^
-#  aa/   \bb      |
-#   /     \   E<--
+# 1. C at the pole.
+# 2. line(CA), line(CB) are longitude lines.
+#
+#      C = dRA                N
+#     / \                     ^
+#  aa/   \bb = pi/2 - Dec     |
+#   /     \               E<--
 #  /   cc  \
 # B - - - - A
 #(no. 2)    (no. 1)
@@ -636,6 +652,7 @@ def CosineLaw_side(aa, bb, C):
     '''
     cos_cc = np.cos(aa) * np.cos(bb) + np.sin(aa) * np.sin(bb) * np.cos(C)
     return np.arccos(cos_cc)
+
 
 def CosineLaw_angle(aa, bb, cc):
 
@@ -660,16 +677,22 @@ def CosineLaw_angle(aa, bb, cc):
             raise ValueError('Please check if (A=0 and B=0), (A=0 and B=pi), '
                              'or (A=pi and B=0).')
 
-def DistanceMode(*args):
+
+def DistanceMode(*args, **kwargs):
 
     '''
-    DistanceMode(ra_p1, dec_p1, ra_p2, dec_p2)
-     or DistanceMode(Coor_p1, Coor_p2),
+    DistanceMode(ra_p1, dec_p1, ra_p2, dec_p2, xy_comp=False)
+     or DistanceMode(Coor_p1, Coor_p2, xy_comp=False),
      where ra_p#, dec_p#, and Coor_p# are ra/dec/Coor classes,
     calculate the angular distance between p1 and p2.
 
-    Return a list:
-    [PA of p2 wrt p1[deg], PA of p1 wrt p2[deg], dist(p1, p2)[deg]]
+    xy_comp: bool. Output dRA[deg] and dDec[deg]. (Default vale=False)
+
+    Return a tuple:
+    if xy_comp=False:
+      (dist(p1, p2)[deg], PA of p2 wrt p1[deg], PA of p1 wrt p2[deg])
+    else:
+      (dist, PA2wrt1, PA1wrt2, dRA of p2 wrt p1[deg], dDec of p2 wrt p1[deg])
     '''
     if len(args) == 4:
         # args = ra(), dec(), ra(), dec()
@@ -685,6 +708,11 @@ def DistanceMode(*args):
         dec_2 = args[1].Dec
     else:
         raise ValueError('Please check input for DistanceMode!')
+
+    xy_comp = False
+    if kwargs:
+        xy_comp = kwargs['xy_comp']
+
     # Calculate all forms of RA and Dec
     for i in [ra_1, dec_1, ra_2, dec_2]:
         i.converter()
@@ -713,9 +741,21 @@ def DistanceMode(*args):
             A = CosineLaw_angle(bb, cc, aa)
             B = CosineLaw_angle(aa, cc, bb)
             # Determine the direction of PA
-            A = A if C > 0. else -A
-            B = B if C < 0. else -B
-    return [A * rad2deg, B * rad2deg, cc * rad2deg]
+            A = A if C > 0. else -A # A ∈ (-pi/2, +pi/2]
+            B = B if C < 0. else -B # B ∈ (-pi/2, +pi/2]
+
+    if not xy_comp:
+        # (dist(p1, p2)[deg], PA of p2 wrt p1[deg], PA of p1 wrt p2[deg])
+        return (cc * rad2deg, A * rad2deg, B * rad2deg)
+    else:
+        # dRA
+        dRA_deg, PA21_deg, _ = DistanceMode(ra_1, dec_1, ra_2, dec_1, xy_comp=False)
+        dRA_deg = -dRA_deg if PA21_deg < 0. else dRA_deg
+        # dDec
+        dDec_deg = dec_2.all_d - dec_1.all_d
+        # (dist, PA2wrt1, PA1wrt2, dRA of p2 wrt p1[deg], dDec of p2 wrt p1[deg])
+        return (cc * rad2deg, A * rad2deg, B * rad2deg, dRA_deg, dDec_deg)
+
 
 def DisplacementMode(*args):
 
@@ -726,7 +766,7 @@ def DisplacementMode(*args):
     calculate the displaced point [ra_p2, dec_p2].
 
     Return:
-    [ra_p2, dec_p2] or Coor(ra_p2, dec_p2)
+    (ra_p2, dec_p2) or Coor(ra_p2, dec_p2)
     '''
     if len(args) == 4:
         # args = ra(), dec(), x, pa
@@ -768,7 +808,7 @@ def DisplacementMode(*args):
     dec_p2.all_d = 90. - aa * rad2deg
     dec_p2.converter()
     if len(args) == 4:
-        return [ra_p2, dec_p2]
+        return (ra_p2, dec_p2)
     if len(args) == 3:
         return Coor(ra_p2, dec_p2)
 

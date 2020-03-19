@@ -154,24 +154,26 @@ Output file format:\n\
             Dec2 = resolve_Dec_line(data_dec2, i + 1)
             RA2.converter()
             Dec2.converter()
-            [pa21, pa12, d] = DistanceMode(RA1, Dec1, RA2, Dec2)
+            d, pa21, pa12, dRA, dDec = DistanceMode(RA1, Dec1, RA2, Dec2, xy_comp=True)
 
             # Write into the outputfile [anglar distance]
             result += ('#{0:-<4d}--{1:-<12s}--{2:-<14s} '
-                       '{3:>15s} {4:>15s} {5:>15s}\n'.format(
-                       n, 'R.A.', 'Dec.', 'dist["]', "dist[']", 'dist[deg]'))
+                       'dist = {3:>11.3f}" = {4:>9.3f}\' = {5:>7.3f} deg\n'.format(
+                       n, 'R.A.', 'Dec.', d * 3600., d * 60., d))
             n += 1
             result += ('1)hms {0:>2d}:{1:0>2d}:{2:0>7.4f}  '
-                       '{3}{4}:{5:0>2d}:{6:0>7.4f} '
-                       '{7:15f} {8:15f} {9:15f}\n'.format(
+                       '{3}{4:0>2d}:{5:0>2d}:{6:0>6.3f}  '
+                       'dRA  = {7:>11.3f}" = {8:>9.3f}\' = {9:>7.3f} deg\n'.format(
                        RA1.h, RA1.m, RA1.s,
                        Dec1.sign, Dec1.d, Dec1.arcm, Dec1.arcs,
-                       d * 3600., d * 60., d))
+                       dRA * 3600., dRA * 60., dRA))
             result += ('2)hms {0:>2d}:{1:0>2d}:{2:0>7.4f}  '
-                       '{3}{4}:{5:0>2d}:{6:0>7.4f}  '
-                       'P.A.[deg]={7:+11.6f}(2wrt1)/{8:+11.6f}(1wrt2)\n'.format(
+                       '{3}{4:0>2d}:{5:0>2d}:{6:0>6.3f}  '
+                       'dDec = {7:>11.3f}" = {8:>9.3f}\' = {9:>7.3f} deg\n'.format(
                        RA2.h, RA2.m, RA2.s,
-                       Dec2.sign, Dec2.d, Dec2.arcm, Dec2.arcs, pa21, pa12))
+                       Dec2.sign, Dec2.d, Dec2.arcm, Dec2.arcs,
+                       dDec * 3600., dDec * 60., dDec))
+            result += (' '*36 + 'PA   = {0:+8.3f} (2wrt1) / {1:+8.3f} (1wrt2) deg\n'.format(pa21, pa12))
         elif displacementMode:
             # For calculating angular displacement
             x = items[2]
@@ -204,27 +206,29 @@ Output file format:\n\
                 pa = float(pa[:-3])
             else:
                 pa = float(pa)
-            [RA2, Dec2] = DisplacementMode(RA1, Dec1, x, pa)
-            [pa21, pa12, d] = DistanceMode(RA1, Dec1, RA2, Dec2)
+            RA2, Dec2 = DisplacementMode(RA1, Dec1, x, pa)
+            d, pa21, pa12, dRA, dDec = DistanceMode(RA1, Dec1, RA2, Dec2, xy_comp=True)
 
             # Write into the outputfile [anglar displacement]
             result += ('#{0:-<4d}--{1:-<12s}--{2:-<14s} '
-                       '{3:>15s} {4:>15s} {5:>15s}\n'.format(
-                       n, 'R.A.', 'Dec.', 'dist["]', "dist[']", 'dist[deg]'))
+                       'dist = {3:>11.3f}" = {4:>9.3f}\' = {5:>7.3f} deg\n'.format(
+                       n, 'R.A.', 'Dec.', x, x / 60., x / 3600.))
             n += 1
-            result += ('1)hms {0:>2d}:{1:0>2d}:{2:0>7.4f}  '
-                       '{3}{4}:{5:0>2d}:{6:0>7.4f} '
-                       '{7:15f} {8:15f} {9:15f}\n'.format(
+            result += ('1)hms  {0:>2d}:{1:0>2d}:{2:0>7.4f}  '
+                       '{3}{4:0>2d}:{5:0>2d}:{6:0>6.3f} '
+                       'dRA  = {7:>11.3f}" = {8:>9.3f}\' = {9:>7.3f} deg\n'.format(
                        RA1.h, RA1.m, RA1.s,
                        Dec1.sign, Dec1.d, Dec1.arcm, Dec1.arcs,
-                       x, x / 60., x / 3600))
+                       dRA * 3600., dRA * 60., dRA))
             result += ('  dms {0:>3d}:{1:0>2d}:{2:0>7.4f}                '
-                       'P.A.[deg]={3:+11.6f}(2wrt1)/{4:+11.6f}(1wrt2)\n'.format(
-                       RA1.d, RA1.arcm, RA1.arcs, pa21, pa12))
-            result += '  deg {0:>14.10f}  {1:+.10f}\n'.format(
-                      RA1.all_d, Dec1.all_d)
+                       'dDec = {3:>11.3f}" = {4:>9.3f}\' = {5:>7.3f} deg\n'.format(
+                       RA1.d, RA1.arcm, RA1.arcs,
+                       dDec * 3600., dDec * 60., dDec))
+            result += ('  deg {0:>14.10f}  {1:+.10f} '
+                       'PA   = {2:+8.3f} (2wrt1) / {3:+8.3f} (1wrt2) deg\n'.format(
+                      RA1.all_d, Dec1.all_d, pa21, pa12))
             result += ('2)hms  {0:>2d}:{1:0>2d}:{2:0>7.4f}  '
-                       '{3}{4:0>2d}:{5:0>2d}:{6:0>7.4f}\n'.format(
+                       '{3}{4:0>2d}:{5:0>2d}:{6:0>6.3f}\n'.format(
                        RA2.h, RA2.m, RA2.s,
                        Dec2.sign, Dec2.d, Dec2.arcm, Dec2.arcs))
             result += '  dms {0:>3d}:{1:0>2d}:{2:0>7.4f}\n'.format(

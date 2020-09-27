@@ -9,18 +9,20 @@
 # 08/29/2017: Add some functions about units, and calculating beam sizes (for calc_beam.py).
 # 07/30/2018: Use property methods.
 # 08/29/2018: Modify wave_units a little bit (for em_wave.py).
-# 03/20/2020: Become compatible with Python3. Add xy_comp for DistanceMode()
+# 03/20/2020: Become compa_degtible with Python3. Add xy_comp for DistanceMode()
 # #########################################################
-
+import sys
 import numpy as np
 from functools import total_ordering
 from scipy.interpolate import interp1d
-try:
-    # Python2
-    xrange
-except:
+
+if (sys.version_info.major>=3):
     # Python3
     xrange = range
+    izip = zip
+else:
+    # Python2
+    from itertools import izip
 
 c_SI = 299792458.
 
@@ -53,7 +55,7 @@ def nanfloat(value):
 class ra(object):
 
     '''
-    ra class stores the RA part of coordinates.
+    ra class stores the RA pa_degrt of coordinates.
     RA forms:
         h:m:s (hms) / d:arcm:arcs (dms) / all_d (degree) / all_rad (radian)
     Any one of forms is acceptable for creating a ra class,
@@ -141,7 +143,7 @@ class ra(object):
         other.converter()
         return self.all_d < other.all_d
     # Since "@total_ordering", it is not necessary to define > operator.
-    # Once = and < are defined, then the comparison relations are well-defined.
+    # Once = and < are defined, then the compa_degrison relations are well-defined.
 
     def __repr__(self): # defined for print(). Eg. print(ra(all_d=87))
 
@@ -173,7 +175,7 @@ class ra(object):
         self.type = 1
 
     def hms(self, sep=':'):
-        return '{0:0>2d}{3}{1:0>2d}{3}{2:0>5.2f}'.format(self.h, self.m, self.s, sep)
+        return '{0:0>2d}{3}{1:0>2d}{3}{2:0>7.4f}'.format(self.h, self.m, self.s, sep)
 
     @property
     def d(self):
@@ -320,7 +322,7 @@ class ra(object):
 class dec(object):
 
     '''
-    dec class stores the Dec part of coordinates.
+    dec class stores the Dec pa_degrt of coordinates.
     Dec forms:
         d:arcm:arcs (dms) / all_d (degree) / all_rad (radian)
     Any one of forms is acceptable for creating a dec class,
@@ -375,7 +377,7 @@ class dec(object):
             string = string.replace(':',' ')
             ls_str = string.split()
             if len(ls_str) == 3:
-                # self.d and self.sign should be given separately.
+                # self.d and self.sign should be given sepa_degrately.
                 self.sign = '+'
                 if '-' in ls_str[0]:
                     self.sign = '-'
@@ -390,7 +392,7 @@ class dec(object):
         except:
             raise ValueError('Please check your Dec forms "{0}"!\n'
                     'If there are +/- signs, '
-                    'the sign and number can\'t be separated by space.'.format(string0))
+                    'the sign and number can\'t be sepa_degrated by spa_degce.'.format(string0))
 
     def __eq__(self, other):
 
@@ -424,7 +426,7 @@ class dec(object):
     def d(self, d):
         self._d = nanint(d)  # deg
         # self.d is always non-negative.
-        # self.d and self.sign should be given separately.
+        # self.d and self.sign should be given sepa_degrately.
         if self._d < 0.:
             self._sign = '-'
             self._d = abs(self._d)
@@ -447,7 +449,7 @@ class dec(object):
         self.type = -2
 
     def dms(self, sep=':'):
-        return '{0}{1:0>2d}{4}{2:0>2d}{4}{3:0>5.2f}'.format(self.sign, self.d, self.arcm, self.arcs, sep)
+        return '{0}{1:0>2d}{4}{2:0>2d}{4}{3:0>6.3f}'.format(self.sign, self.d, self.arcm, self.arcs, sep)
 
     @property
     def all_d(self):
@@ -492,7 +494,7 @@ class dec(object):
         all_d += self.arcm / 60.
         all_d += self.arcs / 3600.
         # self.d is always positive.
-        # self.d and self.sign should be given separately.
+        # self.d and self.sign should be given sepa_degrately.
         if self.sign == '-':
             all_d *= -1
         self.all_d = all_d
@@ -549,7 +551,7 @@ class dec(object):
 class Coor(object):
 
     '''
-    A wrapper class contains a pair of ra and dec classes.
+    A wrapper class contains a pa_degir of ra and dec classes.
         e.g. Coor(input_ra, input_dec)
     input_ra/dec could be:
         1. strings of RA (h:m:s/d:m:s/degree) and Dec (d:m:s/degree)
@@ -686,13 +688,15 @@ def DistanceMode(*args, **kwargs):
      where ra_p#, dec_p#, and Coor_p# are ra/dec/Coor classes,
     calculate the angular distance between p1 and p2.
 
-    xy_comp: bool. Output dRA[deg] and dDec[deg]. (Default vale=False)
+    xy_comp: bool. Output dx["] and dy["]. (Default value=False)
 
     Return a tuple:
     if xy_comp=False:
       (dist(p1, p2)[deg], PA of p2 wrt p1[deg], PA of p1 wrt p2[deg])
     else:
-      (dist, PA2wrt1, PA1wrt2, dRA of p2 wrt p1[deg], dDec of p2 wrt p1[deg])
+      (dist[deg], PAof2wrt1[deg], PAof1wrt2[deg],
+       dx of dist(p1,p2) wrt p1["],
+       dy of dist(p1,p2) wrt p1["])
     '''
     if len(args) == 4:
         # args = ra(), dec(), ra(), dec()
@@ -744,57 +748,88 @@ def DistanceMode(*args, **kwargs):
             A = A if C > 0. else -A # A ∈ (-pi/2, +pi/2]
             B = B if C < 0. else -B # B ∈ (-pi/2, +pi/2]
 
+    dist_deg = cc * rad2deg
+    PAof2wrt1_deg = A * rad2deg
+    PAof1wrt2_deg = B * rad2deg
+
     if not xy_comp:
+        # Output:
         # (dist(p1, p2)[deg], PA of p2 wrt p1[deg], PA of p1 wrt p2[deg])
-        return (cc * rad2deg, A * rad2deg, B * rad2deg)
+        return (dist_deg, PAof2wrt1_deg, PAof1wrt2_deg)
     else:
         # dRA
-        dRA_deg, PA21_deg, _ = DistanceMode(ra_1, dec_1, ra_2, dec_1, xy_comp=False)
-        dRA_deg = -dRA_deg if PA21_deg < 0. else dRA_deg
+        dx_deg, PA21_deg, _ = DistanceMode(ra_1, dec_1, ra_2, dec_1, xy_comp=False)
+        dx_deg = -dx_deg if PA21_deg < 0. else dx_deg
+        dx_as = dx_deg * 3600.
         # dDec
-        dDec_deg = dec_2.all_d - dec_1.all_d
-        # (dist, PA2wrt1, PA1wrt2, dRA of p2 wrt p1[deg], dDec of p2 wrt p1[deg])
-        return (cc * rad2deg, A * rad2deg, B * rad2deg, dRA_deg, dDec_deg)
+        dy_deg = dec_2.all_d - dec_1.all_d
+        dy_as = dy_deg * 3600.
+
+        # Output:
+        # (dist[deg], PA2wrt1[deg], PA1wrt2[deg],
+        #  dRA of dist(p2,p1) wrt p1["], dDec of dist(p1,p2) wrt p1["])
+        return (dist_deg, PAof2wrt1_deg, PAof1wrt2_deg, dx_as, dy_as)
 
 
-def DisplacementMode(*args):
+def DisplacementMode(*args, **kwargs):
 
     '''
-    DisplacementMode(ra_p1, dec_p1, x["], pa[deg])
-     or DisplacementMode(Coor_p1, x["], pa[deg]),
+    DisplacementMode(ra_p1, dec_p1, shift_as["], pa_deg[deg])
+     or DisplacementMode(ra_p1, dec_p1, dRA["], dDec["], xy_comp=True)
+     or DisplacementMode(Coor_p1, shift_as["], pa_deg[deg]),
+     or DisplacementMode(Coor_p1, dRA["], dDec["], xy_comp=True),
      where ra_p1, dec_p1 are ra/dec classes,
     calculate the displaced point [ra_p2, dec_p2].
+
+    xy_comp: bool. Input dx["] and dy["]. (Default value=False)
 
     Return:
     (ra_p2, dec_p2) or Coor(ra_p2, dec_p2)
     '''
     if len(args) == 4:
-        # args = ra(), dec(), x, pa
+        # args = ra(), dec(), shift_as["], pa_deg[deg]
+        # args = ra(), dec(), dRA["], dDec["]; kwargs = {'xy_comp': True}
         ra_p1 = args[0]
         dec_p1 = args[1]
     elif len(args) == 3:
-        # args = Coor(), x, pa
+        # args = Coor(), shift_as["], pa_deg[deg]
+        # args = Coor(), dRA["], dDec["]; kwargs = {'xy_comp': True}
         ra_p1 = args[0].RA
         dec_p1 = args[0].Dec
     else:
         raise ValueError('Please check input for DisplacementMode!')
-    x = args[-2]
-    pa = args[-1]
+
+    xy_comp = False
+    if kwargs:
+        xy_comp = kwargs['xy_comp']
+
     # Calculate all forms of RA and Dec
     for i in [ra_p1, dec_p1]:
         i.converter()
 
+    # Calculate shift_as["] and pa_deg[deg]
+    if not xy_comp:
+        shift_as = args[-2]
+        pa_deg = args[-1]
+    else:
+        # Convert from dRA["] and dDec["]
+        dx_as = args[-2]
+        dy_as = args[-1]
+        #dx = dRA * np.cos(dec_p1)
+        shift_as = np.sqrt(dx_as**2 + dy_as**2)
+        pa_deg = np.arctan2(dx_as, dy_as) * rad2deg
+
     # Obtain A, bb, cc; all in rad
-    A = pa * deg2rad
+    A = pa_deg * deg2rad
     bb = (90. - dec_p1.all_d) * deg2rad
-    cc = x / 3600. * deg2rad
+    cc = shift_as / 3600. * deg2rad
     # Obtain aa, C; all in rad
     if cc == 0.:
         aa = bb
         C = 0.
     else:
         aa = CosineLaw_side(bb, cc, A)
-        if pa % 180. == 0.:
+        if pa_deg % 180. == 0.:
             C = 0.
         else:
             C = CosineLaw_angle(aa, bb, cc)

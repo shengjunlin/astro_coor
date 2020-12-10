@@ -65,7 +65,7 @@ def nanfloat(value):
 class ra(object):
 
     '''
-    ra class stores the RA pa_degrt of coordinates.
+    ra class stores the RA part of coordinates.
     RA forms:
         h:m:s (hms) / d:arcm:arcs (dms) / all_d (degree) / all_rad (radian)
     Any one of forms is acceptable for creating a ra class,
@@ -153,7 +153,7 @@ class ra(object):
         other.converter()
         return self.all_d < other.all_d
     # Since "@total_ordering", it is not necessary to define > operator.
-    # Once = and < are defined, then the compa_degrison relations are well-defined.
+    # Once = and < are defined, then the comparison relations are well-defined.
 
     def __repr__(self): # defined for print(). Eg. print(ra(all_d=87))
 
@@ -332,7 +332,7 @@ class ra(object):
 class dec(object):
 
     '''
-    dec class stores the Dec pa_degrt of coordinates.
+    dec class stores the Dec part of coordinates.
     Dec forms:
         d:arcm:arcs (dms) / all_d (degree) / all_rad (radian)
     Any one of forms is acceptable for creating a dec class,
@@ -387,7 +387,7 @@ class dec(object):
             string = string.replace(':',' ')
             ls_str = string.split()
             if len(ls_str) == 3:
-                # self.d and self.sign should be given sepa_degrately.
+                # self.d and self.sign should be given separately.
                 self.sign = '+'
                 if '-' in ls_str[0]:
                     self.sign = '-'
@@ -402,7 +402,7 @@ class dec(object):
         except:
             raise ValueError('Please check your Dec forms "{0}"!\n'
                     'If there are +/- signs, '
-                    'the sign and number can\'t be sepa_degrated by spa_degce.'.format(string0))
+                    'the sign and number can\'t be separated by space.'.format(string0))
 
     def __eq__(self, other):
 
@@ -436,7 +436,7 @@ class dec(object):
     def d(self, d):
         self._d = nanint(d)  # deg
         # self.d is always non-negative.
-        # self.d and self.sign should be given sepa_degrately.
+        # self.d and self.sign should be given separately.
         if self._d < 0.:
             self._sign = '-'
             self._d = abs(self._d)
@@ -504,7 +504,7 @@ class dec(object):
         all_d += self.arcm / 60.
         all_d += self.arcs / 3600.
         # self.d is always positive.
-        # self.d and self.sign should be given sepa_degrately.
+        # self.d and self.sign should be given separately.
         if self.sign == '-':
             all_d *= -1
         self.all_d = all_d
@@ -561,7 +561,7 @@ class dec(object):
 class Coor(object):
 
     '''
-    A wrapper class contains a pa_degir of ra and dec classes.
+    A wrapper class contains a pair of ra and dec classes.
         e.g. Coor(input_ra, input_dec)
     input_ra/dec could be:
         1. strings of RA (h:m:s/d:m:s/degree) and Dec (d:m:s/degree)

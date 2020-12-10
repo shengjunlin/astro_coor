@@ -4,17 +4,27 @@
 # Aurthor : Sheng-Jun Lin
 # Email : sj.lin@gapp.nthu.edu.tw
 # Description : Calculating the coordinate system and beam sizes
-# Written on 06/14/2014
-# 08/15/2017: Rewrite the method to classify types of coor. forms
+# 06/14/2014: Init.
+#   * CosineLaw_side(), CosineLaw_angle(): Spherical cosine law.
+#   * DistanceMode(): Compute the great-circle distance.
+#   * DisplacementMode(): Compute a new location by an angular shift.
+#                         This is a feature that astropy.SkyCoord (v2.x) doesn't include.
+# 08/15/2017: Write the method to classify types of coord. forms.
 # 08/29/2017: Add some functions about units, and calculating beam sizes (for calc_beam.py).
 # 07/30/2018: Use property methods.
 # 08/29/2018: Modify wave_units a little bit (for em_wave.py).
-# 03/20/2020: Become compa_degtible with Python3. Add xy_comp for DistanceMode()
+# ** astropy v3.1 adds a new method: SkyCoord.directional_offset_by()
+#                                    that provides the same function as DisplacementMode().
+# 03/20/2020: Become compatible with Python3. Add xy_comp for DistanceMode()
+#
 # #########################################################
 import sys
 import numpy as np
 from functools import total_ordering
 from scipy.interpolate import interp1d
+from astropy.coordinates import SkyCoord
+from astropy import units as u
+
 
 if (sys.version_info.major>=3):
     # Python3
@@ -560,7 +570,7 @@ class Coor(object):
         4. ra class/dec class objects
     While print a Coor class, 'h:m:s, d:m:s' will show up.
     '''
-    def __init__(self, input_ra, input_dec):
+    def __init__(self, input_ra, input_dec, frame='fk5'):
 
         if isinstance(input_ra, str):
             self.RA = ra(ra_str=input_ra)
@@ -586,6 +596,7 @@ class Coor(object):
 
         self.RA.converter()
         self.Dec.converter()
+        self.frame = frame
 
     def converter(self):
 
@@ -602,6 +613,18 @@ class Coor(object):
     def dms(self, sep=':'):
         return self.Dec.dms(sep)
 
+    def to_SkyCoord(self, frame='', **kwargs):
+        if not frame:
+            frame = self.frame
+        return SkyCoord(self.hms(), self.dms(), unit=(u.hourangle, u.deg), **kwargs)
+
+
+def SkyCoord_to_Coor(skycoord_obj):
+    """Create a Coor class instance by the input astropy.SkyCoord object
+    """
+    return Coor(str(skycoord_obj.ra.to_string(unit=u.hourangle)),
+                str(skycoord_obj.dec.to_string()),
+                frame=skycoord_obj.frame.name)
 
 
 def converter(co):
@@ -816,8 +839,7 @@ def DisplacementMode(*args, **kwargs):
         dx_as = args[-2]
         dy_as = args[-1]
         #dx = dRA * np.cos(dec_p1)
-        shift_as = np.sqrt(dx_as**2 + dy_as**2)
-        pa_deg = np.arctan2(dx_as, dy_as) * rad2deg
+        pa_deg, shift_as = offsets_to_shift_PA(dx_as, dy_as)
 
     # Obtain A, bb, cc; all in rad
     A = pa_deg * deg2rad
@@ -846,6 +868,20 @@ def DisplacementMode(*args, **kwargs):
         return (ra_p2, dec_p2)
     if len(args) == 3:
         return Coor(ra_p2, dec_p2)
+
+
+def offsets_to_shift_PA(dx_as, dy_as):
+    '''Convert offsets (dx_as, dy_as) to displacement (as) and P.A. (deg)
+
+      Args:
+        dx_as: float. Horizontial offset in arcsec.
+        dy_as: float. Vertial offset in arcsec.
+      Returns:
+        (displacement_as, PA_deg)
+    '''
+    shift_as = np.sqrt(dx_as**2 + dy_as**2)
+    pa_deg = np.arctan2(dx_as, dy_as) * rad2deg
+    return (pa_deg, shift_as)
 
 
 def demical(quan):

@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 #-*- coding:utf-8 -*-
 # #########################################################
-# Aurthor : Sheng-Jun Lin
+# Author : Sheng-Jun Lin
 # Email : sj.lin@gapp.nthu.edu.tw
 # Description : Calculating the coordinate system and beam sizes
 # 06/14/2014: Init.

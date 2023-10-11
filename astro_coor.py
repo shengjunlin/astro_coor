@@ -764,6 +764,9 @@ def DistanceMode(*args, **kwargs):
             elif bb > aa:
                 A = 0.
                 B = np.pi
+            else:  # bb == aa
+                A = np.pi/2
+                B = np.pi/2
         else:
             A = CosineLaw_angle(bb, cc, aa)
             B = CosineLaw_angle(aa, cc, bb)
@@ -780,7 +783,7 @@ def DistanceMode(*args, **kwargs):
         # (dist(p1, p2)[deg], PA of p2 wrt p1[deg], PA of p1 wrt p2[deg])
         return (dist_deg, PAof2wrt1_deg, PAof1wrt2_deg)
     else:
-        # dRA
+        # dRA (make dec_2 become dec_1)
         dx_deg, PA21_deg, _ = DistanceMode(ra_1, dec_1, ra_2, dec_1, xy_comp=False)
         dx_deg = -dx_deg if PA21_deg < 0. else dx_deg
         dx_as = dx_deg * 3600.
@@ -955,7 +958,7 @@ def beam_size(quan, diameter):
     print('')
     if diameter_SI == 6.:
         print('SMA !')
-    elif diameter_SI == 12.:
+    elif diameter_SI == 12. or diameter_SI == 7.:
         print('ALMA Primary Beam [1.13x] = {:.2f}"'.format(1.13 * ratio_arcsec))
         print('ALMA MRS ~ 0.5 * Primary beam')
     elif diameter_SI == 30.:

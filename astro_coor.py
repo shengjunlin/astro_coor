@@ -4,18 +4,19 @@
 # Author : Sheng-Jun Lin
 # Email : sj.lin@gapp.nthu.edu.tw
 # Description : Calculating the coordinate system and beam sizes
-# 06/14/2014: Init.
-#   * CosineLaw_side(), CosineLaw_angle(): Spherical cosine law.
-#   * DistanceMode(): Compute the great-circle distance.
-#   * DisplacementMode(): Compute a new location by an angular shift.
-#                         This is a feature that astropy.SkyCoord (v2.x) doesn't include.
-# 08/15/2017: Write the method to classify types of coord. forms.
-# 08/29/2017: Add some functions about units, and calculating beam sizes (for calc_beam.py).
-# 07/30/2018: Use property methods.
-# 08/29/2018: Modify wave_units a little bit (for em_wave.py).
-# ** astropy v3.1 adds a new method: SkyCoord.directional_offset_by()
-#                                    that provides the same function as DisplacementMode().
-# 03/20/2020: Become compatible with Python3. Add xy_comp for DistanceMode()
+#    2014-JUL-14: Init. The astro_coor module has the following functions.
+#        CosineLaw_side(), CosineLaw_angle(): Spherical cosine law.
+#        DistanceMode(): Compute the great-circle distance.
+#        DisplacementMode(): Compute a new location by an angular shift.
+#                            This is a feature that astropy.SkyCoord (v2.x) doesn't include.
+#    2017-AUG-15: Write the method to classify types of coord. forms.
+#    2017-AUG-29: Add some functions about units, and calculating beam sizes (for calc_beam.py).
+#    2018-JUL-30: Use property methods.
+#    2018-AUG-29: Modify wave_unit a little bit (for em_wave.py).
+#    *2019-FEB*   astropy v3.1 adds a new method: SkyCoord.directional_offset_by()
+#                 that provides the same feature as DisplacementMode().
+#    2020-MAR-20: Become compatible with Python3.
+#                 Add xy_comp for DistanceMode()
 #
 # #########################################################
 import sys
@@ -619,12 +620,178 @@ class Coor(object):
         return SkyCoord(self.hms(), self.dms(), unit=(u.hourangle, u.deg), **kwargs)
 
 
+class Loc(Coor):
+
+    """Location of a target.
+    """
+
+    def __init__(self, RA, Dec, name='', dist_pc=0., frame='fk5'):
+        """
+        Args:
+          RA: str. Any format.
+          Dec: str. Any format.
+          name: str. Target name.
+          dist_pc: float. Distance in parsec.
+        """
+        super(Loc, self).__init__(RA, Dec)
+        self.name = name
+        self.dist_pc = dist_pc
+        # The rad/deg forms of RA and Dec
+        self.RA_rad = self.RA.all_rad
+        self.Dec_rad = self.Dec.all_rad
+        self.RA_deg = self.RA.all_d
+        self.Dec_deg = self.Dec.all_d
+        self.frame = frame
+
+    @property
+    def pix_size_amin(self):
+        """Set the pixel size in arcmin or retrieve the value.
+        E.g.,
+        >>> A = Loc("00:00:00.0", "+00:00:00.0")
+        >>> A.pix_size_amin(0.5)  # Set the pixel size as 0.5 arcmin
+        >>> print(A.pix_size_amin)  # Obtain the pixel size in arcmin
+        >>> print(A.pix_size_asec)  # The pixel size in arcsec is also computed
+        """
+        return self._pix_size_amin
+
+    @pix_size_amin.setter
+    def pix_size_amin(self, pix_size_amin):
+        self._pix_size_amin = pix_size_amin
+        self._pix_size_asec = pix_size_amin * 60.
+
+    @property
+    def pix_size_asec(self):
+        """Set the pixel size in arcsec or retrieve the value.
+        E.g.,
+        >>> A = Loc("00:00:00.0", "+00:00:00.0")
+        >>> A.pix_size_asec(30.)  # Set the pixel size as 30 arcsec
+        >>> print(A.pix_size_asec)  # Obtain the pixel size in arcsec
+        >>> print(A.pix_size_amin)  # The pixel size in arcmin is also computed
+        """
+        return self._pix_size_asec
+
+    @pix_size_asec.setter
+    def pix_size_asec(self, pix_size_asec):
+        self._pix_size_asec = pix_size_asec
+        self._pix_size_amin = pix_size_asec / 60.
+
+    @property
+    def pix_size_au(self):
+        """Once the pixel size is set by the methods, pix_size_asec
+        or pix_size_amin, we can retrieve the pixel size in au.
+        E.g.,
+        >>> A = Loc("00:00:00.0", "+00:00:00.0")
+        >>> A.pix_size_asec(30.)  # Set the pixel size as 30 arcsec
+        >>> print(A.pix_size_au)  # Obtain the pixel size in au
+        """
+        self._pix_size_au = self.dist_pc * self.pix_size_asec
+        return self._pix_size_au
+
+    @property
+    def pix_size_pc(self):
+        """Once the pixel size is set by the methods, pix_size_asec
+        or pix_size_amin, we can retrieve the pixel size in parsec.
+        E.g.,
+        >>> A = Loc("00:00:00.0", "+00:00:00.0")
+        >>> A.pix_size_asec(30.)  # Set the pixel size as 30 arcsec
+        >>> print(A.pix_size_pc)  # Obtain the pixel size in pc
+        """
+        self._pix_size_pc = self.pix_size_au * au_SI / pc_SI
+        return self._pix_size_pc
+
+    @property
+    def pix_size_m(self):
+        """Once the pixel size is set by the methods, pix_size_asec
+        or pix_size_amin, we can retrieve the pixel size in meter.
+        E.g.,
+        >>> A = Loc("00:00:00.0", "+00:00:00.0")
+        >>> A.pix_size_asec(30.)  # Set the pixel size as 30 arcsec
+        >>> print(A.pix_size_m)  # Obtain the pixel size in meter
+        """
+        self._pix_size_m = self.pix_size_au * au_SI
+        return self._pix_size_m
+
+    @property
+    def pix_size_cm(self):
+        """Once the pixel size is set by the methods, pix_size_asec
+        or pix_size_amin, we can retrieve the pixel size in centimeter.
+        E.g.,
+        >>> A = Loc("00:00:00.0", "+00:00:00.0")
+        >>> A.pix_size_asec(30.)  # Set the pixel size as 30 arcsec
+        >>> print(A.pix_size_cm)  # Obtain the pixel size in centimeter
+        """
+        self._pix_size_cm = self.pix_size_au * au_SI * 100.
+        return self._pix_size_cm
+
+    @property
+    def asec_in_au(self):
+        """Once self.dist_pc is set,
+        we can retrieve the 1-arcsec projected scale in au.
+        E.g.,
+        >>> A = Loc("00:00:00.0", "+00:00:00.0", dist_pc=140.)
+        >>> print(A.asec_in_au)  # Projected length of 1 arcsec in au.
+        """
+        return self.dist_pc
+
+    @property
+    def amin_in_au(self):
+        """Once self.dist_pc is set,
+        we can retrieve the 1-arcmin projected scale in au.
+        E.g.,
+        >>> A = Loc("00:00:00.0", "+00:00:00.0", dist_pc=140.)
+        >>> print(A.amin_in_au)  # Projected length of 1 arcmin in au.
+        """
+        return self.dist_pc * 60.
+
+    @property
+    def au_in_asec(self):
+        """Once self.dist_pc is set,
+        we can retrieve the 1-au projected length in the units of arcsec.
+        E.g.,
+        >>> A = Loc("00:00:00.0", "+00:00:00.0", dist_pc=140.)
+        >>> print(A.au_in_asec)  # Projected length of 1 au in arcsec.
+        """
+        return 1. / self.asec_in_au
+
+    @property
+    def au_in_amin(self):
+        """Once self.dist_pc is set,
+        we can retrieve the 1-au projected length in the units of arcmin.
+        E.g.,
+        >>> A = Loc("00:00:00.0", "+00:00:00.0", dist_pc=140.)
+        >>> print(A.au_in_amin)  # Projected length of 1 au in arcmin.
+        """
+        return 1. / self.amin_in_au
+
+    def to_SkyCoord(self, frame=''):
+        """Return the Loc object to be an astropy.coordinates.SkyCoord object.
+
+        Arg:
+          frame: str. {'fk5', 'fk4'} Default value = ''.
+        """
+        if not frame:
+            frame = self.frame
+        return SkyCoord(self.hms(), self.dms(), frame=frame, unit=(u.hourangle, u.deg))
+
+
 def SkyCoord_to_Coor(skycoord_obj):
     """Create a Coor class instance by the input astropy.SkyCoord object
     """
     return Coor(str(skycoord_obj.ra.to_string(unit=u.hourangle)),
                 str(skycoord_obj.dec.to_string()),
                 frame=skycoord_obj.frame.name)
+
+
+def SkyCoord_to_Loc(skycoord_obj, name='', dist_pc=0.):
+    """Create a Loc class instance by the input astropy.SkyCoord object
+
+    2018-DEC: astropy.SkyCoord provides a new method, directional_offset_by(),
+              in version 3.1.2, but astropy 2.0.16 is the last version that
+              supports python 2.
+    """
+    return Loc(str(skycoord_obj.ra.to_string(unit=u.hourangle)),
+               str(skycoord_obj.dec.to_string()),
+               name, dist_pc, frame=skycoord_obj.frame.name)
 
 
 def converter(co):

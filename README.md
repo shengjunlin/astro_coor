@@ -4,23 +4,25 @@ the angular displaccement of the coordinates. There are also additional
 functions handling the beam size calculation.
 
 This module was written because the feature of `astro_coor.DisplacementMode()`
-was not implemented by astropy 2.x. While astropy 3.1 starts to provide such
+was not implemented by `astropy 2`. However, `astropy 3.1` starts to provide such
 a feature with `astropy.coordinates.SkyCoord.directional_offset_by()`,
-and then the `astro_coor.Coor` class can be almost replaced with
-` astropy.coordinates.SkyCoord`.
-However, the command-line interface is still useful.
-The commands are the following.
+and then the `astro_coor.Coor` class can almost be replaced by
+`astropy.coordinates.SkyCoord`. Despite the great compatibility with the other
+ `astropy` feature of using `SkyCoord`, the command-line interface provided by
+ `astro_coor` remains very useful.
+The CLI commands are the following.
 
 1. `RADec_convert.py`
 
-Features:
 * Convert given RA and Dec into different forms.
 * Calculate the distance and P.A. between two given points.
 * Calculate the shifted location from a given point with the displacement.
 
-2. `beam_calc.py` A python script calculating the beam size from given freq/wavelength and diameter.
+2. `beam_calc.py` A python script calculating the beam size from given
+ freq/wavelength and dish diameter.
 
-3. `em_wave.py` A python script calculating the freq from a given wavelength and vice versa.
+3. `em_wave.py` A python script calculating the freq from a given wavelength
+ and vice versa.
 
 
 ## Usage:
@@ -111,8 +113,9 @@ E.g. ./em_wave.py 350GHz
 freq/wavelength need to be suffixed with their units.
 ```
 
-The `astro_coor` module also several useful class and functions.
-To import this module for using the `Coor()` class and the other functions, please do
+The `astro_coor` module also provides several useful class and functions.
+To import this module for using the `Coor()` class and the other functions,
+ please do
 ```
 >>> import sys
 >>> sys.path.append([the path to the parent directory of astro_coor/])

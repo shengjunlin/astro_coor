@@ -1113,7 +1113,7 @@ def wave_unit(quan, screen=False):
     return (quan_SI, quan_type)
 
 
-def beam_size(quan, diameter):
+def beam_size(quan, diameter, version=None):
 
     quan_SI, quan_type = wave_unit(quan)
     if quan_type == 'freq':
@@ -1129,15 +1129,29 @@ def beam_size(quan, diameter):
         print('ALMA Primary Beam [1.13x] = {:.2f}"'.format(1.13 * ratio_arcsec))
         print('ALMA MRS ~ 0.5 * Primary beam')
     elif diameter_SI == 30.:
-        # Beam sizes of the Error beams
-        EBs, EBs_err = IRAM30m_EBs(wavelen_SI=quan_SI)
-        # Beam eff. of the Error beams
-        b_eff, P1_pr, P2_pr, P3_pr, Feff = IRAM30m_eff(wavelen_SI=quan_SI)
-        print('IRAM 30m MB (HPBW) [1.166x] = {0:.2f}"; B_eff = {1:.2f}'.format(1.166 * ratio_arcsec, b_eff))
-        print('IRAM 30m EB1 (HPBW)         = {0:.2f} ({1:.2f})"; P1_pr = {2:.2f}'.format(EBs[0], EBs_err[0], P1_pr))
-        print('IRAM 30m EB2 (HPBW)         = {0:.2f} ({1:.2f})"; P2_pr = {2:.2f}'.format(EBs[1], EBs_err[1], P2_pr))
-        print('IRAM 30m EB3 (HPBW)         = {0:.2f} ({1:.2f})"; P3_pr = {2:.2f}'.format(EBs[2], EBs_err[2], P3_pr))
-        print('IRAM 30m Forward eff. = {0:.2f}'.format(Feff))
+        if version is None:
+            # Beam sizes of the Error beams
+            EBs, EBs_err = IRAM30m_EBs(wavelen_SI=quan_SI)
+            # Beam eff. of the Error beams
+            b_eff, P1_pr, P2_pr, P3_pr, Feff = IRAM30m_eff(wavelen_SI=quan_SI)
+            print('IRAM 30m MB (HPBW) [1.166x] = {0:.2f}"; B_eff = {1:.2f}'.format(1.166 * ratio_arcsec, b_eff))
+            print('IRAM 30m EB1 (HPBW)         = {0:.2f} ({1:.2f})"; P1_pr = {2:.2f}'.format(EBs[0], EBs_err[0], P1_pr))
+            print('IRAM 30m EB2 (HPBW)         = {0:.2f} ({1:.2f})"; P2_pr = {2:.2f}'.format(EBs[1], EBs_err[1], P2_pr))
+            print('IRAM 30m EB3 (HPBW)         = {0:.2f} ({1:.2f})"; P3_pr = {2:.2f}'.format(EBs[2], EBs_err[2], P3_pr))
+            print('IRAM 30m Forward eff. = {0:.2f}'.format(Feff))
+        elif version == '1998':
+            # Beam sizes of the Error beams
+            EBs = IRAM30m_EBs_1998(wavelen_SI=quan_SI)
+            # Beam eff. of the Error beams
+            b_eff, P1_pr, P2_pr, P3_pr, Feff = IRAM30m_eff_1998(wavelen_SI=quan_SI)
+            print('!!!!! IRAM 30m from 1998 !!!!!')
+            print('IRAM 30m MB (HPBW) [1.166x] = {0:.2f}"; B_eff = {1:.2f}'.format(1.166 * ratio_arcsec, b_eff))
+            print('IRAM 30m EB1 (HPBW)         = {0:.2f}"; P1_pr = {1:.2f}'.format(EBs[0], P1_pr))
+            print('IRAM 30m EB2 (HPBW)         = {0:.2f}"; P2_pr = {1:.2f}'.format(EBs[1], P2_pr))
+            print('IRAM 30m EB3 (HPBW)         = {0:.2f}"; P3_pr = {1:.2f}'.format(EBs[2], P3_pr))
+            print('IRAM 30m Forward eff. = {0:.2f}'.format(Feff))
+        else:
+            raise RuntimeError('The IRAM version is not unknown!')
     elif diameter_SI == 100.:
         fwhm_arcsec, diffr_coef = GBT_fwhm(wavelen_SI=quan_SI)
         print('GBT 100m resolution (FWHM) [{0}x] = {1:.2f}"'.format(diffr_coef, fwhm_arcsec))
@@ -1213,6 +1227,62 @@ def IRAM30m_eff(wavelen_SI):
     #            ~= (θ_s)^2 / (θ_s ^2 + θ_MB ^2)
     renormalized2Feff = [np.asscalar(e) / Feff_freq for e in effs]
     return tuple(renormalized2Feff + [Feff_freq])
+
+
+def IRAM30m_EBs_1998(wavelen_SI):
+
+    # theata["] * freq[GHz] = k (Equ. 2 in Kramer+2013)
+    freq_SI = c_SI / wavelen_SI
+    freq_GHz = freq_SI / 1e9
+    freq_measured       = np.array([88.,    150., 230., 350.]) # GHz
+    # Measured error beam sizes. (")
+    th_EB1_measured     = np.array([300.,   175., 125.,  85.])
+    th_EB2_measured     = np.array([410.,   280., 180., 160.])
+    th_EB3_measured     = np.array([2500., 1500., 950., 580.])
+
+    # Linear interpolation of these effs with frequencies
+    th_EB1_func = interp1d(freq_measured, th_EB1_measured)
+    th_EB2_func = interp1d(freq_measured, th_EB2_measured)
+    th_EB3_func = interp1d(freq_measured, th_EB3_measured)
+
+    th_EBs = np.array([th_EB1_func(freq_GHz), th_EB2_func(freq_GHz), th_EB3_func(freq_GHz)])
+    return th_EBs
+
+
+def IRAM30m_eff_1998(wavelen_SI):
+
+    freq_SI = c_SI / wavelen_SI
+    freq_GHz = freq_SI / 1e9
+    freq_measured = np.array([88., 150., 230., 350.]) # GHz
+    # B, P1', P2', P3', F effs measured at freq_measured [GHz] (Table 2 in Greve+1998)
+    # B eff: Main beam eff.
+    Beff_measured = np.array([.73, .54,  .42, .19])
+    # P1'_eff: The 1st error beam eff.
+    P1pr_measured = np.array([.03, .075, .15, .20])
+    # P2'_eff: The 2nd error beam eff.
+    P2pr_measured = np.array([.03, .080, .12, .20])
+    # P3'_eff: The 3rd error beam eff.
+    P3pr_measured = np.array([.20, .250, .26, .30])
+    # F_eff: Forward eff. = B_eff + P1'_eff + P2'_eff + P3'_eff + fss_eff
+    Feff_measured = np.array([.92, .90,  .86, .75])
+    # Note: 1.00 = F_eff + rss_eff (rearward spillover&scattering eff.)
+    # These effs are normailized to a solid angle of 4pi.
+
+    # Linear interpolation of these effs with frequencies
+    Beff = interp1d(freq_measured, Beff_measured)
+    P1pr = interp1d(freq_measured, P1pr_measured)
+    P2pr = interp1d(freq_measured, P2pr_measured)
+    P3pr = interp1d(freq_measured, P3pr_measured)
+    Feff = interp1d(freq_measured, Feff_measured)
+
+    # Efficiencies normailized to 4pi
+    effs = [Beff(freq_GHz), P1pr(freq_GHz), P2pr(freq_GHz), P3pr(freq_GHz)]
+    Feff_freq = np.asscalar(Feff(freq_GHz))
+
+    # Efficiencies normailized to 2pi, *_eff/F_eff
+    renormalized2Feff = [np.asscalar(e) / Feff_freq for e in effs]
+    return tuple(renormalized2Feff + [Feff_freq])
+
 
 def GBT_fwhm(wavelen_SI):
 

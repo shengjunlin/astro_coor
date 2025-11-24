@@ -859,9 +859,13 @@ def CosineLaw_angle(aa, bb, cc):
         # aa != 0 and bb != 0
         cos_C = \
             (np.cos(cc) - np.cos(aa) * np.cos(bb)) / (np.sin(aa) * np.sin(bb))
-        if -1. <= cos_C <= 1.:
+        if np.abs(cos_C) <= 1.:
+        # if -1. <= cos_C <= 1.:
             # Normal case: A = (0, pi) and B = (0, pi)
             return np.arccos(cos_C)
+        elif np.isclose(np.abs(cos_C), 1.):
+            # cos(C) = 1, arccos(1) = 0
+            return 0.
         else:
             # (1) cc = aa + bb <=> A = 0, B = 0; C = pi
             # (2) bb = aa + cc <=> A = 0, B = pi; C = 0
